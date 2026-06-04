@@ -3,6 +3,13 @@ import pytest
 from outlier_scout.config import load_config
 
 
+@pytest.fixture(autouse=True)
+def isolate_dotenv(monkeypatch):
+    """Stop load_config from reading the project's real .env during tests,
+    so env-var assertions depend only on what each test sets."""
+    monkeypatch.setattr("outlier_scout.config.load_dotenv", lambda *a, **k: None)
+
+
 def write_yaml(tmp_path):
     p = tmp_path / "config.yaml"
     p.write_text(textwrap.dedent("""
