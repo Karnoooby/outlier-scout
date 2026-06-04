@@ -29,3 +29,12 @@ def test_render_digest_empty_week():
     d = render_digest([], now)
     assert d.new_count == 0
     assert "no new outliers" in d.html.lower()
+
+
+def test_render_digest_neutralizes_non_http_url():
+    now = datetime(2026, 6, 7, tzinfo=timezone.utc)
+    a = make_analyzed(4.0, "Long", "Vid")
+    a.outlier.video.url = "javascript:alert(1)"
+    d = render_digest([a], now)
+    assert "javascript:alert(1)" not in d.html
+    assert 'href="#"' in d.html

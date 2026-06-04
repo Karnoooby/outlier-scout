@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 
 from outlier_scout.models import Outlier, AnalyzedOutlier
 
@@ -40,10 +39,12 @@ def _build_user_prompt(o: Outlier, niche: str) -> str:
 
 
 def _parse(text: str) -> dict:
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
+    """Extract the first JSON object from the response, ignoring trailing prose."""
+    start = text.find("{")
+    if start == -1:
         raise ValueError("no JSON object in response")
-    return json.loads(match.group(0))
+    obj, _ = json.JSONDecoder().raw_decode(text[start:])
+    return obj
 
 
 def analyze_outlier(client, outlier: Outlier, niche: str) -> AnalyzedOutlier:
@@ -64,12 +65,13 @@ def analyze_outlier(client, outlier: Outlier, niche: str) -> AnalyzedOutlier:
                 }],
             )
             data = _parse(resp.content[0].text)
-            return AnalyzedOutlier(
-                outlier=outlier,
-                description=data["description"],
-                why_outlier=data["why_outlier"],
-                niche_application=data["niche_application"],
-            )
+            fields = {
+                k: data.get(k)
+                for k in ("description", "why_outlier", "niche_application")
+            }
+            if not all(isinstance(v, str) and v.strip() for v in fields.values()):
+                raise ValueError("incomplete analysis fields")
+            return AnalyzedOutlier(outlier=outlier, **fields)
         except Exception as e:  # noqa: BLE001 - degrade gracefully on any failure
             last_err = e
     return AnalyzedOutlier(

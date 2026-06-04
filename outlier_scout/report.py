@@ -7,11 +7,16 @@ from typing import List
 from outlier_scout.models import AnalyzedOutlier, Digest
 
 
+def _safe_url(url: str) -> str:
+    """Only allow http(s) links in the rendered HTML; neutralize anything else."""
+    return url if url.startswith(("https://", "http://")) else "#"
+
+
 def _entry_html(a: AnalyzedOutlier) -> str:
     o, v = a.outlier, a.outlier.video
     return (
         f'<div style="margin:0 0 24px;padding:16px;border:1px solid #eee;border-radius:8px">'
-        f'<h3 style="margin:0 0 8px"><a href="{escape(v.url)}">{escape(v.title)}</a> '
+        f'<h3 style="margin:0 0 8px"><a href="{escape(_safe_url(v.url))}">{escape(v.title)}</a> '
         f'<span style="color:#c00">{o.multiplier}x</span></h3>'
         f'<p style="margin:0 0 8px;color:#555">{escape(v.channel_title)} &middot; '
         f'{v.views:,} views &middot; {o.age_days}d old &middot; {o.video_format}</p>'

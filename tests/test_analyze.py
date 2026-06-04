@@ -33,3 +33,22 @@ def test_analyze_retries_once_then_falls_back_to_metadata():
     assert client.messages.calls == 2
     assert "unavailable" in result.why_outlier.lower()
     assert result.description == "Why gamers rage"
+
+
+def test_analyze_parses_json_with_trailing_prose():
+    payload = ('{"description": "d", "why_outlier": "w", '
+               '"niche_application": "a"}\n\nNote: extra {text} here.')
+    client = FakeAnthropic([payload])
+    result = analyze_outlier(client, make_outlier(), niche=NICHE)
+    assert result.description == "d"
+    assert result.niche_application == "a"
+
+
+def test_analyze_falls_back_on_null_field():
+    import json as _json
+    payload = _json.dumps({"description": None, "why_outlier": "w",
+                           "niche_application": "a"})
+    client = FakeAnthropic([payload, payload])
+    result = analyze_outlier(client, make_outlier(), niche=NICHE)
+    assert client.messages.calls == 2
+    assert "unavailable" in result.why_outlier.lower()
