@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
 
 
 @dataclass
@@ -26,19 +25,5 @@ class Outlier:
     video_format: str          # "Short" or "Long"
     baseline_median: float
     age_days: int
-
-
-@dataclass
-class AnalyzedOutlier:
-    outlier: Outlier
-    description: str
-    why_outlier: str
-    niche_application: str
-
-
-@dataclass
-class Digest:
-    subject: str
-    html: str
-    markdown: str
-    new_count: int
+    niche_label: str = ""
+    niche_type: str = ""       # "core" or "adjacent"

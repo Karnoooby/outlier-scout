@@ -50,9 +50,9 @@ class YouTubeClient:
             page = resp.get("nextPageToken")
             if not page:
                 break
-        return self._hydrate(ids)
+        return self.get_videos(ids)
 
-    def _hydrate(self, video_ids: List[str]) -> List[Video]:
+    def get_videos(self, video_ids: List[str]) -> List[Video]:
         out: List[Video] = []
         for start in range(0, len(video_ids), 50):
             batch = video_ids[start:start + 50]
@@ -81,11 +81,13 @@ class YouTubeClient:
                 ))
         return out
 
-    def search_channels(self, query: str, max_results: int) -> List[str]:
+    def search_videos(self, query: str, max_results: int,
+                      published_after: str, relevance_language: str = "en") -> List[str]:
+        """Recent, high-view video IDs for a query (RFC3339 published_after, e.g.
+        '2026-05-28T00:00:00Z'). Returns video IDs in id.videoId."""
         resp = self._yt.search().list(
-            part="snippet", q=query, type="channel",
-            maxResults=min(50, max_results),
+            part="snippet", q=query, type="video", order="viewCount",
+            maxResults=min(50, max_results), publishedAfter=published_after,
+            relevanceLanguage=relevance_language,
         ).execute()
-        # search.list returns the channel ID in id.channelId (not a @handle).
-        # get_channel accepts a bare channel ID, so we pass these through directly.
-        return [it["id"]["channelId"] for it in resp.get("items", [])]
+        return [it["id"]["videoId"] for it in resp.get("items", [])]
