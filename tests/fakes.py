@@ -26,3 +26,33 @@ class FakeYouTubeClient:
 
     def search_channels(self, query: str, max_results: int) -> List[str]:
         return self._search.get(query, [])[:max_results]
+
+
+import json
+
+
+class _FakeMessages:
+    def __init__(self, scripted):
+        self._scripted = list(scripted)  # list of str OR Exception
+        self.calls = 0
+
+    def create(self, **kwargs):
+        item = self._scripted[min(self.calls, len(self._scripted) - 1)]
+        self.calls += 1
+        if isinstance(item, Exception):
+            raise item
+
+        class _Block:
+            def __init__(self, text):
+                self.text = text
+        class _Resp:
+            def __init__(self, text):
+                self.content = [_Block(text)]
+        return _Resp(item)
+
+
+class FakeAnthropic:
+    """Mimics anthropic.Anthropic with a scripted messages.create()."""
+
+    def __init__(self, scripted):
+        self.messages = _FakeMessages(scripted)
