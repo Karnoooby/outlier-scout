@@ -19,6 +19,8 @@ class Cfg:
     outlier_threshold: float = 2.5
     outlier_ceiling: float = 80.0
     min_videos_per_format: int = 3
+    max_subscribers: int = 250000
+    min_subscribers: int = 0
 
 
 def vid(id, channel_id, views, dur=300, days_old=2):
@@ -34,13 +36,14 @@ def baseline_videos(channel_id, median_views, n=5, dur=300):
             for i in range(n)]
 
 
-def build_client(candidate, base_median=1000, base_dur=300):
+def build_client(candidate, base_median=1000, base_dur=300, subs=50000):
     """One discovered channel 'C' with a baseline; one search query 'q' that
-    returns the candidate video id."""
+    returns the candidate video id. `subs` sets channel C's subscriber count."""
     return FakeYouTubeClient(
         channels={
             "@me": {"channel_id": "anchor", "title": "Me", "uploads_playlist_id": "UPme"},
-            "C": {"channel_id": "C", "title": "C", "uploads_playlist_id": "UPc"},
+            "C": {"channel_id": "C", "title": "C", "uploads_playlist_id": "UPc",
+                  "subscriber_count": subs},
         },
         videos={"UPc": baseline_videos("C", base_median, dur=base_dur)},
         search_results={"q": [candidate.id]},
@@ -157,3 +160,29 @@ def test_hunt_httperror_in_one_niche_does_not_abort_others():
     ]
     out = hunt(client, niche_list, Cfg(), NOW, is_reported=lambda v: False)
     assert [o.video.id for o in out] == ["HITB"]  # niche A errored; niche B still ran
+
+
+def test_hunt_drops_channel_above_max_subscribers():
+    client = build_client(vid("HIT", "C", 4000), subs=5_000_000)
+    out = hunt(client, niches(), Cfg(max_subscribers=250000), NOW,
+               is_reported=lambda v: False)
+    assert out == []  # 5M-sub channel excluded as too big to replicate
+
+
+def test_hunt_drops_channel_below_min_subscribers():
+    client = build_client(vid("HIT", "C", 4000), subs=50)
+    out = hunt(client, niches(), Cfg(min_subscribers=1000), NOW,
+               is_reported=lambda v: False)
+    assert out == []  # tiny/dead channel excluded when a floor is set
+
+
+def test_hunt_keeps_channel_within_subscriber_band():
+    client = build_client(vid("HIT", "C", 4000), subs=50_000)
+    out = hunt(client, niches(), Cfg(), NOW, is_reported=lambda v: False)
+    assert [o.video.id for o in out] == ["HIT"]
+
+
+def test_hunt_keeps_channel_with_hidden_subscribers():
+    client = build_client(vid("HIT", "C", 4000), subs=None)
+    out = hunt(client, niches(), Cfg(), NOW, is_reported=lambda v: False)
+    assert [o.video.id for o in out] == ["HIT"]  # hidden subs: can't judge, keep

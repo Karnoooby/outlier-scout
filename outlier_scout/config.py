@@ -22,6 +22,8 @@ class Config:
     outlier_threshold: float = 2.5
     outlier_ceiling: float = 80.0
     min_videos_per_format: int = 3
+    max_subscribers: int = 250000   # exclude channels bigger than this (too unreplicable)
+    min_subscribers: int = 0        # 0 = no floor; raise to drop tiny/dead channels
 
 
 def load_config(path: str) -> Config:
@@ -46,4 +48,6 @@ def load_config(path: str) -> Config:
         outlier_threshold=float(data.get("outlier_threshold", 2.5)),
         outlier_ceiling=float(data.get("outlier_ceiling", 80)),
         min_videos_per_format=int(data.get("min_videos_per_format", 3)),
+        max_subscribers=int(data.get("max_subscribers", 250000)),
+        min_subscribers=int(data.get("min_subscribers", 0)),
     )

@@ -21,6 +21,8 @@ def write_yaml(tmp_path):
         outlier_threshold: 2.5
         outlier_ceiling: 80
         min_videos_per_format: 3
+        max_subscribers: 250000
+        min_subscribers: 0
         recipient_email: "me@example.com"
     """))
     return p
@@ -35,6 +37,8 @@ def test_load_config_reads_yaml_and_youtube_key(tmp_path, monkeypatch):
     assert cfg.report_window_days == 7
     assert cfg.outlier_ceiling == 80
     assert cfg.relevance_language == "en"
+    assert cfg.max_subscribers == 250000
+    assert cfg.min_subscribers == 0
     assert cfg.youtube_api_key == "yt-key"
 
 
@@ -54,4 +58,6 @@ def test_load_config_defaults(tmp_path, monkeypatch):
     assert cfg.outlier_threshold == 2.5
     assert cfg.outlier_ceiling == 80
     assert cfg.min_videos_per_format == 3
+    assert cfg.max_subscribers == 250000
+    assert cfg.min_subscribers == 0
     assert cfg.adjacent_hints == []

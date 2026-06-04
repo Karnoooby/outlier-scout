@@ -16,23 +16,29 @@ class YouTubeClient:
         self._yt = build("youtube", "v3", developerKey=api_key)
 
     def get_channel(self, handle: str) -> dict:
+        part = "contentDetails,snippet,statistics"
         if handle.startswith("@"):
             resp = self._yt.channels().list(
-                part="contentDetails,snippet", forHandle=handle.lstrip("@"),
+                part=part, forHandle=handle.lstrip("@"),
             ).execute()
         else:
-            resp = self._yt.channels().list(
-                part="contentDetails,snippet", id=handle,
-            ).execute()
+            resp = self._yt.channels().list(part=part, id=handle).execute()
         items = resp.get("items", [])
         if not items:
             raise LookupError(f"Channel not found: {handle}")
         it = items[0]
+        stats = it.get("statistics", {})
+        # subscriber_count is None when the channel hides its subscriber count.
+        if stats.get("hiddenSubscriberCount") or "subscriberCount" not in stats:
+            subscriber_count = None
+        else:
+            subscriber_count = int(stats["subscriberCount"])
         return {
             "channel_id": it["id"],
             "title": it["snippet"]["title"],
             "uploads_playlist_id":
                 it["contentDetails"]["relatedPlaylists"]["uploads"],
+            "subscriber_count": subscriber_count,
         }
 
     def get_recent_videos(self, uploads_playlist_id: str,
