@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from typing import List
 
@@ -8,8 +7,6 @@ from googleapiclient.discovery import build
 
 from outlier_scout.models import Video
 from outlier_scout.outliers import parse_duration
-
-_DUR = None  # placeholder to keep import list tidy
 
 
 class YouTubeClient:
@@ -89,8 +86,6 @@ class YouTubeClient:
             part="snippet", q=query, type="channel",
             maxResults=min(50, max_results),
         ).execute()
-        handles: List[str] = []
-        for it in resp.get("items", []):
-            handle = it["snippet"].get("customUrl") or it["snippet"]["channelId"]
-            handles.append(handle)
-        return handles
+        # search.list returns the channel ID in id.channelId (not a @handle).
+        # get_channel accepts a bare channel ID, so we pass these through directly.
+        return [it["id"]["channelId"] for it in resp.get("items", [])]
