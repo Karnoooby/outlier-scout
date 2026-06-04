@@ -3,14 +3,16 @@
 YouTube outlier-finder: flags videos that beat their format's median view count.
 
 ## Run
-- Always use the venv: `./venv/bin/python outliers.py @ChannelHandle`
-- Requires `YOUTUBE_API_KEY` in `.env` (copy from `.env.example`)
+- Manual: `./venv/bin/python -m outlier_scout.run` (prints a JSON email envelope)
+- Tests: `./venv/bin/python -m pytest`
+- Requires `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` in `.env`
 
-## How it works (outliers.py)
-- Resolves @handle → uploads playlist → 50 most recent videos
-- Splits into Shorts (≤180s) vs Long-form (>180s)
-- Baseline = MEDIAN views per group (not mean)
-- Score = views ÷ group median; prints videos ≥ 2.5×, sorted desc
+## How it works
+Weekly pipeline in `outlier_scout/`: discover channels (seed + keyword) →
+fetch recent videos → score outliers per-channel by format median →
+drop already-emailed IDs (sqlite) → analyze each with Claude →
+render digest → a scheduled agent emails it. See
+`docs/superpowers/specs/2026-06-03-youtube-outlier-research-tool-design.md`.
 
 ## Notes
 - Never hardcode the API key — read from `.env`
