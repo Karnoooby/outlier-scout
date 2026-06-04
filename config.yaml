@@ -1,0 +1,14 @@
+# Channels you already follow / compete with (handles, include the @).
+seed_channels: []
+
+# Discovery search terms.
+keywords:
+  - "gaming psychology"
+  - "psychology of gaming"
+  - "video game addiction"
+
+outlier_threshold: 2.5     # multiplier vs the channel's own format median
+lookback_days: 14          # only consider videos published in the last N days
+max_channels: 15           # tight MVP cap on channels scanned per run
+min_videos_per_format: 5   # skip a format with fewer recent videos
+recipient_email: "f.karnib1996@gmail.com"
