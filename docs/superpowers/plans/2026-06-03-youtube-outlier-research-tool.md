@@ -721,7 +721,6 @@ Expected: PASS (1 passed).
 ```python
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from typing import List
 
@@ -729,8 +728,6 @@ from googleapiclient.discovery import build
 
 from outlier_scout.models import Video
 from outlier_scout.outliers import parse_duration
-
-_DUR = None  # placeholder to keep import list tidy
 
 
 class YouTubeClient:
@@ -806,14 +803,12 @@ class YouTubeClient:
             part="snippet", q=query, type="channel",
             maxResults=min(50, max_results),
         ).execute()
-        handles: List[str] = []
-        for it in resp.get("items", []):
-            handle = it["snippet"].get("customUrl") or it["snippet"]["channelId"]
-            handles.append(handle)
-        return handles
+        # search.list returns the channel ID in id.channelId (not a @handle).
+        # get_channel accepts a bare channel ID, so we pass these through directly.
+        return [it["id"]["channelId"] for it in resp.get("items", [])]
 ```
 
-> Note: `search().list` returns channel IDs; `get_channel` accepts a handle *or* a bare channel ID via `forHandle` only for handles. For discovery we pass the channel ID through `get_channel` by ID — handled in Task 7 by resolving via the channels endpoint. To keep the MVP simple, `search_channels` returns channel IDs and Task 7's discovery resolves them through `get_channel`, which Task 7 extends to accept IDs. (See Task 7, Step 4.)
+> Note: `search().list(type="channel")` returns bare channel IDs (`UC...`) in `id.channelId`, never `@handles`. `get_channel` (extended in Task 7 Step 4) accepts a bare channel ID via `id=`, so discovered IDs flow through the same path as seed handles. Because seeds are `@handles` and discovered channels are IDs, the same channel could appear under two identifiers — `run_pipeline` (Task 10) dedups on the resolved canonical `channel_id` to prevent double-processing.
 
 - [ ] **Step 7: Run the full suite (no regressions)**
 
@@ -1364,6 +1359,7 @@ def run_pipeline(config: Config, youtube_client, anthropic_client,
     )
 
     all_outliers: List[Outlier] = []
+    seen_channels = set()  # canonical channel_ids, to dedup seed/discovery overlap
     for handle in channels:
         try:
             videos = fetch_channel_videos(
@@ -1371,6 +1367,12 @@ def run_pipeline(config: Config, youtube_client, anthropic_client,
             )
         except LookupError:
             continue  # channel not found / no uploads; skip gracefully
+        if not videos:
+            continue
+        channel_id = videos[0].channel_id
+        if channel_id in seen_channels:
+            continue  # same channel reached via both a seed handle and discovery
+        seen_channels.add(channel_id)
         all_outliers += score_channel(
             videos, config.outlier_threshold,
             config.min_videos_per_format, now,
