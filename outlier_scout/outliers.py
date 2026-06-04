@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import re
 import statistics
-from datetime import datetime
-from typing import List
+from typing import List, Optional
 
-from outlier_scout.models import Video, Outlier
+from outlier_scout.models import Video
 
 SHORTS_THRESHOLD_S = 180
 _DURATION_RE = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
@@ -28,38 +27,13 @@ def median(values: List[float]) -> float:
     return statistics.median(values)
 
 
-def score_channel(
-    videos: List[Video],
-    threshold: float,
-    min_videos_per_format: int,
-    now: datetime,
-) -> List[Outlier]:
-    """Score each video against its own channel's per-format median.
+def format_median(videos: List[Video], fmt: str, min_videos: int) -> Optional[float]:
+    """Median view count of a channel's videos in one format.
 
-    A format with fewer than `min_videos_per_format` videos is skipped
-    (unreliable baseline). Returns outliers with multiplier >= threshold,
-    sorted by multiplier descending.
+    Returns None when fewer than `min_videos` exist for that format
+    (baseline too thin to trust).
     """
-    groups = {"Short": [], "Long": []}
-    for v in videos:
-        groups[classify_format(v.duration_s)].append(v)
-
-    outliers: List[Outlier] = []
-    for fmt, group in groups.items():
-        if len(group) < min_videos_per_format:
-            continue
-        base = median([v.views for v in group])
-        if base <= 0:
-            continue
-        for v in group:
-            mult = v.views / base
-            if mult >= threshold:
-                outliers.append(Outlier(
-                    video=v,
-                    multiplier=round(mult, 2),
-                    video_format=fmt,
-                    baseline_median=base,
-                    age_days=(now - v.published_at).days,
-                ))
-    outliers.sort(key=lambda o: o.multiplier, reverse=True)
-    return outliers
+    counts = [v.views for v in videos if classify_format(v.duration_s) == fmt]
+    if len(counts) < min_videos:
+        return None
+    return median(counts)
