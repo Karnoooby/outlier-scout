@@ -113,13 +113,14 @@ def test_hunt_filters_already_reported():
 
 
 def test_hunt_caches_channel_baseline_across_queries():
-    cand = vid("HIT", "C", 4000)
+    cand1 = vid("HIT1", "C", 4000)
+    cand2 = vid("HIT2", "C", 5000)
     client = FakeYouTubeClient(
         channels={"@me": {"channel_id": "anchor", "title": "Me", "uploads_playlist_id": "UPme"},
                   "C": {"channel_id": "C", "title": "C", "uploads_playlist_id": "UPc"}},
         videos={"UPc": baseline_videos("C", 1000)},
-        search_results={"q1": ["HIT"], "q2": ["HIT"]},
-        video_index={"HIT": cand},
+        search_results={"q1": ["HIT1"], "q2": ["HIT2"]},
+        video_index={"HIT1": cand1, "HIT2": cand2},
     )
     calls = {"n": 0}
     orig = client.get_recent_videos
@@ -129,5 +130,30 @@ def test_hunt_caches_channel_baseline_across_queries():
         return orig(pid, n)
     client.get_recent_videos = counting
     out = hunt(client, niches(queries=("q1", "q2")), Cfg(), NOW, is_reported=lambda v: False)
-    assert [o.video.id for o in out] == ["HIT"]   # seen-video dedup keeps it once
-    assert calls["n"] == 1                          # baseline fetched once (cached)
+    assert {o.video.id for o in out} == {"HIT1", "HIT2"}  # both kept
+    assert calls["n"] == 1                                  # baseline fetched once (cache)
+
+
+def test_hunt_httperror_in_one_niche_does_not_abort_others():
+    import httplib2
+    from googleapiclient.errors import HttpError
+    candB = vid("HITB", "CB", 4000)
+    client = FakeYouTubeClient(
+        channels={"@me": {"channel_id": "anchor", "title": "Me", "uploads_playlist_id": "UPme"},
+                  "CB": {"channel_id": "CB", "title": "CB", "uploads_playlist_id": "UPb"}},
+        videos={"UPb": baseline_videos("CB", 1000)},
+        search_results={"qB": ["HITB"]},
+        video_index={"HITB": candB},
+    )
+    real_search = client.search_videos
+    def maybe_boom(query, *a, **k):
+        if query == "qA":
+            raise HttpError(httplib2.Response({"status": 403}), b"quota")
+        return real_search(query, *a, **k)
+    client.search_videos = maybe_boom
+    niche_list = [
+        {"label": "A", "type": "core", "queries": ["qA"]},
+        {"label": "B", "type": "adjacent", "queries": ["qB"]},
+    ]
+    out = hunt(client, niche_list, Cfg(), NOW, is_reported=lambda v: False)
+    assert [o.video.id for o in out] == ["HITB"]  # niche A errored; niche B still ran
