@@ -1,14 +1,11 @@
-# Channels you already follow / compete with (handles, include the @).
-seed_channels: []
-
-# Discovery search terms.
-keywords:
-  - "gaming psychology"
-  - "psychology of gaming"
-  - "video game addiction"
-
-outlier_threshold: 2.5     # multiplier vs the channel's own format median
-lookback_days: 14          # only consider videos published in the last N days
-max_channels: 15           # tight MVP cap on channels scanned per run
-min_videos_per_format: 5   # skip a format with fewer recent videos
+anchor_channel: "@karnooby"      # your channel — defines the niche
+anchor_video_count: 12           # last N uploads used to derive the niche
+adjacent_hints: []               # optional: nudge specific adjacent niches
+report_window_days: 7            # only report videos newer than this
+lookback_days: 90                # window used to build each channel's baseline
+max_videos_per_query: 8          # video-search results requested per query
+relevance_language: "en"         # filter search to this language
+outlier_threshold: 2.5           # min multiplier vs channel format median
+outlier_ceiling: 80              # max multiplier (drops lottery/faceless slop)
+min_videos_per_format: 3         # skip a format with fewer recent videos
 recipient_email: "f.karnib1996@gmail.com"
