@@ -8,6 +8,6 @@ relevance_language: "en"         # filter search to this language
 outlier_threshold: 2.5           # min multiplier vs channel format median
 outlier_ceiling: 80              # max multiplier (drops lottery/faceless slop)
 min_videos_per_format: 3         # skip a format with fewer recent videos
-max_subscribers: 250000          # exclude channels bigger than this (unreplicable)
+max_subscribers: 500000          # exclude channels bigger than this (unreplicable)
 min_subscribers: 0               # 0 = no floor; raise to drop tiny/dead channels
 recipient_email: "f.karnib1996@gmail.com"
