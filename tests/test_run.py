@@ -73,3 +73,18 @@ def test_run_pipeline_dedups_same_channel_from_seed_and_discovery(tmp_path):
     # The HIT outlier must appear exactly once despite two entry points.
     assert digest.new_count == 1
     assert an.messages.calls == 1  # analyzed once, not twice
+
+
+def test_run_pipeline_skips_channel_on_http_error(tmp_path):
+    import httplib2
+    from googleapiclient.errors import HttpError
+    now = datetime(2026, 6, 3, tzinfo=timezone.utc)
+    yt, an = build_clients(now)
+
+    def boom(*args, **kwargs):
+        raise HttpError(httplib2.Response({"status": 403}), b"quota exceeded")
+
+    yt.get_recent_videos = boom  # simulate quota error during fetch
+    store = Store(str(tmp_path / "r.db"))
+    digest = run_pipeline(cfg(), yt, an, store, now)
+    assert digest.new_count == 0  # run completes, just with nothing gathered

@@ -6,6 +6,8 @@ import sys
 from datetime import datetime, timezone
 from typing import List
 
+from googleapiclient.errors import HttpError
+
 from outlier_scout.config import Config, load_config
 from outlier_scout.discover import discover_channels
 from outlier_scout.fetch import fetch_channel_videos
@@ -33,8 +35,8 @@ def run_pipeline(config: Config, youtube_client, anthropic_client,
             videos = fetch_channel_videos(
                 youtube_client, handle, config.lookback_days, now,
             )
-        except LookupError:
-            continue  # channel not found / no uploads; skip gracefully
+        except (LookupError, HttpError):
+            continue  # channel not found OR API error → skip gracefully
         if not videos:
             continue
         channel_id = videos[0].channel_id
