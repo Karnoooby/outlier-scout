@@ -19,10 +19,14 @@ class YouTubeClient:
         self._yt = build("youtube", "v3", developerKey=api_key)
 
     def get_channel(self, handle: str) -> dict:
-        resp = self._yt.channels().list(
-            part="contentDetails,snippet",
-            forHandle=handle.lstrip("@"),
-        ).execute()
+        if handle.startswith("@"):
+            resp = self._yt.channels().list(
+                part="contentDetails,snippet", forHandle=handle.lstrip("@"),
+            ).execute()
+        else:
+            resp = self._yt.channels().list(
+                part="contentDetails,snippet", id=handle,
+            ).execute()
         items = resp.get("items", [])
         if not items:
             raise LookupError(f"Channel not found: {handle}")
