@@ -1,8 +1,8 @@
 anchor_channel: "@karnooby"      # your channel — defines the niche
 anchor_video_count: 12           # last N uploads used to derive the niche
 adjacent_hints: []               # optional: nudge specific adjacent niches
-report_window_days: 7            # only report videos newer than this
-lookback_days: 90                # window used to build each channel's baseline
+report_window_days: 120          # only report videos newer than this
+lookback_days: 120               # window used to build each channel's baseline
 max_videos_per_query: 8          # video-search results requested per query
 relevance_language: "en"         # filter search to this language
 outlier_threshold: 2.5           # min multiplier vs channel format median
